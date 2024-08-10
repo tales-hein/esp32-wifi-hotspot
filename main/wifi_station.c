@@ -29,7 +29,8 @@ static int retry_count = 0;
 
 // Function declarations
 
-void spiffs_write_file(const char*, const char*);
+void spiffs_append_file(const char* path, const char* data);
+void spiffs_erase_content(const char* path);
 char* spiffs_read_file(const char *path);
 void init_hotspot(void);
 
@@ -126,15 +127,52 @@ void wifi_init_sta(void)
     if (bits & WIFI_CONNECTED_BIT)
     {
         ESP_LOGI(TAG, "connected to ap SSID:%s password:%s", ssid, pass);
+        char content[100];
+        sniprintf(content, sizeof(content), "ssid=%s&pass=%s", ssid, pass);
+        spiffs_append_file(WIFI_FILE, content);
     }
-    else if (bits & WIFI_FAIL_BIT) 
+    else if (bits & WIFI_FAIL_BIT)
     {
         ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s",ssid, pass);
+        ESP_LOGI(TAG, "Initializing hotspot for wifi configuration...");
+        init_hotspot();
+        return;
     } 
     else
     {
         ESP_LOGE(TAG, "UNEXPECTED EVENT");
     }
+}
+
+void check_last_succesful_connection(void)
+{
+    char* store_wifi_data = spiffs_read_file(WIFI_FILE);
+
+    ESP_LOGI(TAG, "dados:%s", store_wifi_data);
+
+    if (strlen(store_wifi_data) == 0) 
+    {
+        ESP_LOGI(TAG, "No last successful connection data found... Initializing hotspot for wifi configuration.");
+        init_hotspot();
+        return;
+    }
+
+    char stored_ssid[32] = {0};
+    char stored_pass[64] = {0};
+
+    sscanf(store_wifi_data, "ssid=%31[^&]&password=%63s", stored_ssid, stored_pass);
+
+    if (strcmp(stored_ssid, "") == 0 || strcmp(stored_pass, "") == 0) 
+    {
+        ESP_LOGI(TAG, "No last successful connection data found... Initializing hotspot for wifi configuration.");
+        init_hotspot();
+        return;
+    }
+
+    ESP_LOGI(TAG, "Content retrieved from last successful connection. Using it...");
+
+    strncpy((char *)ssid, stored_ssid, 32);
+    strncpy((char *)pass, stored_pass, 64);
 }
 
 void init_wifi_sta(void)
@@ -146,6 +184,8 @@ void init_wifi_sta(void)
       err = nvs_flash_init();
     }
     ESP_ERROR_CHECK(err);
+
+    check_last_succesful_connection();
 
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
     wifi_init_sta();

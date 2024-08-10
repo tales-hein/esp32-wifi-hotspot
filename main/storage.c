@@ -1,76 +1,78 @@
-// External inclusions
-
+#include <string.h>
 #include "esp_spiffs.h"
-#include "esp_err.h"
 #include "esp_log.h"
-#include "../../../../../esp/esp-idf/components/spiffs/spiffs/src/spiffs.h"
 
-void spiffs_write_file(const char *path, const char *data) 
+void spiffs_append_file(const char *path, const char *data) 
 {
-    spiffs_file file = SPIFFS_open(NULL, path, SPIFFS_O_WRONLY | SPIFFS_O_CREAT, 0);
-    if (file < 0)
+    FILE *file = fopen(path, "a");
+    if (!file)
     {
-        ESP_LOGE("SPIFFS", "Failed to open file for writing");
+        ESP_LOGE("SPIFFS", "Failed to open file for appending");
         return;
     }
 
-    ssize_t bytes_written = SPIFFS_write(NULL, file, (void *)data, strlen(data));
-    if (bytes_written < 0)
+    if (fwrite(data, sizeof(char), strlen(data), file) == 0)
     {
         ESP_LOGE("SPIFFS", "Failed to write data to file");
     } 
-    else 
+    else
     {
-        ESP_LOGI("SPIFFS", "File written successfully");
+        ESP_LOGI("SPIFFS", "Appended data to file successfully");
     }
 
-    SPIFFS_close(NULL, file);
+    fclose(file);
+}
+
+void spiffs_erase_content(const char *path)
+{
+    FILE *file = fopen(path, "w");
+    if (!file)
+    {
+        ESP_LOGE("SPIFFS", "Failed to open file for erasing");
+        return;
+    }
+    fclose(file);
 }
 
 char* spiffs_read_file(const char *path) 
 {
-    spiffs_file file = SPIFFS_open(NULL, path, SPIFFS_O_RDONLY, 0);
-    if (file < 0)
+    FILE *file = fopen(path, "r");
+    if (!file)
     {
         ESP_LOGE("SPIFFS", "Failed to open file for reading");
         return NULL;
     }
 
-    ssize_t file_size = SPIFFS_lseek(NULL, file, 0, SPIFFS_SEEK_END);
-    if (file_size < 0)
-    {
-        ESP_LOGE("SPIFFS", "Failed to seek to end of file");
-        SPIFFS_close(NULL, file);
-        return NULL;
-    }
-    SPIFFS_lseek(NULL, file, 0, SPIFFS_SEEK_SET);
+    fseek(file, 0, SEEK_END);
+    ssize_t file_size = ftell(file);
+    rewind(file);
 
     char* file_content = (char*) malloc(file_size + 1);
     if (!file_content)
     {
         ESP_LOGE("SPIFFS", "Failed to allocate memory for file content");
-        SPIFFS_close(NULL, file);
+        fclose(file);
         return NULL;
     }
 
-    ssize_t bytes_read = SPIFFS_read(NULL, file, file_content, file_size);
+    ssize_t bytes_read = fread(file_content, sizeof(char), file_size, file);
     if (bytes_read < 0)
     {
         ESP_LOGE("SPIFFS", "Failed to read file content");
         free(file_content);
-        SPIFFS_close(NULL, file);
+        fclose(file);
         return NULL;
     }
 
     file_content[bytes_read] = '\0';
 
-    SPIFFS_close(NULL, file);
+    fclose(file);
 
     return file_content;
 }
 
-
-void init_spiffs() {
+void init_spiffs() 
+{
     esp_vfs_spiffs_conf_t conf = {
         .base_path = "/spiffs",
         .partition_label = NULL,
