@@ -158,9 +158,7 @@ void check_last_succesful_connection(void)
 {
     char* store_wifi_data = spiffs_read_file(WIFI_FILE);
 
-    ESP_LOGI(TAG, "dados:%s", store_wifi_data);
-
-    if (strlen(store_wifi_data) == 0) 
+    if (store_wifi_data == NULL || strlen(store_wifi_data) == 0) 
     {
         ESP_LOGI(TAG, "No last successful connection data found... Initializing hotspot for wifi configuration.");
         in_ap_mode = true;

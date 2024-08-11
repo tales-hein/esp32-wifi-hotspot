@@ -21,6 +21,7 @@ extern EventGroupHandle_t sta_wifi_event_group;
 
 esp_err_t webserver_handler(httpd_req_t *req);
 void init_wifi_sta(void);
+int min(int x, int y);
 
 httpd_uri_t connect_uri = {
     .uri       = "/connect",
@@ -65,7 +66,7 @@ esp_err_t webserver_handler(httpd_req_t *req) {
         int ret, remaining = req->content_len;
         while (remaining > 0)
         {
-            if ((ret = httpd_req_recv(req, buf, MIN(remaining, sizeof(buf)))) <= 0)
+            if ((ret = httpd_req_recv(req, buf, min(remaining, sizeof(buf)))) <= 0)
             {
                 if (ret == HTTPD_SOCK_ERR_TIMEOUT)
                 {
