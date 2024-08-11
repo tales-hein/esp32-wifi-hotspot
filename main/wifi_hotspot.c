@@ -6,14 +6,16 @@
 
 // Local variables
 
-#define SOFT_AP_SSID  "ESP32"
-#define SOFT_AP_PASS  "12345678"
-#define WIFI_TAG      "WIFI_HOTSPOT"
+#define SOFT_AP_SSID          "ESP32"
+#define SOFT_AP_PASS          "12345678"
+#define WIFI_TAG              "WIFI_HOTSPOT"
+#define RECEIVED_HOTSPOT_DATA BIT2
 
 // Global variables
 
-extern char* ssid;
-extern char* pass;
+extern char ssid[32];
+extern char pass[64];
+extern EventGroupHandle_t sta_wifi_event_group;
 
 // Function declarations
 
@@ -86,10 +88,11 @@ esp_err_t webserver_handler(httpd_req_t *req) {
             return ESP_OK;
         }
 
-        ESP_LOGI(WIFI_TAG, "Connecting to SSID:%s with password:%s", ssid, pass);
         httpd_resp_sendstr(req, "Wi-Fi credentials received. Trying to connect...");
 
-        init_wifi_sta();
+        ESP_LOGI(WIFI_TAG, "Connecting to SSID:%s with password:%s", ssid, pass);
+        
+        xEventGroupSetBits(sta_wifi_event_group, RECEIVED_HOTSPOT_DATA);
 
         return ESP_OK;
     }
@@ -110,10 +113,20 @@ void start_webserver(void)
 
 void init_hotspot(void) 
 {
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) 
+    {
+      ESP_ERROR_CHECK(nvs_flash_erase());
+      err = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(err);
+
+    ESP_ERROR_CHECK(esp_netif_init());
+
     esp_netif_create_default_wifi_ap();
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    esp_wifi_init(&cfg);
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
     wifi_config_t wifi_config = {
         .ap = {
@@ -131,11 +144,11 @@ void init_hotspot(void)
         wifi_config.ap.authmode = WIFI_AUTH_OPEN;
     }
 
-    esp_wifi_set_mode(WIFI_MODE_AP);
-
-    esp_wifi_set_config(ESP_IF_WIFI_AP, &wifi_config);
-
-    esp_wifi_start();
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+    
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
+    
+    ESP_ERROR_CHECK(esp_wifi_start());
 
     start_webserver();
 }

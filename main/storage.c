@@ -71,7 +71,7 @@ char* spiffs_read_file(const char *path)
     return file_content;
 }
 
-void init_spiffs() 
+void init_storage() 
 {
     esp_vfs_spiffs_conf_t conf = {
         .base_path = "/spiffs",

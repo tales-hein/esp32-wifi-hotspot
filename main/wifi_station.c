@@ -18,21 +18,23 @@
 
 // Definitions
 
-#define MAX_CONN_RETRIES  10
-#define WIFI_CONNECTED_BIT BIT0
-#define WIFI_FAIL_BIT      BIT1
+#define MAX_CONN_RETRIES      10
+#define WIFI_CONNECTED_BIT    BIT0
+#define WIFI_FAIL_BIT         BIT1
+#define RECEIVED_HOTSPOT_DATA BIT2
 
 // Local variables
 
 static const char *TAG = "WIFI STATION";
 static int retry_count = 0;
 static const char* WIFI_FILE  = "/spiffs/wifi.txt";
+bool in_ap_mode = false;
 
 // Global variables
 
-extern char* ssid;
-extern char* pass;
-extern unsigned char has_wifi;
+extern char ssid[32];
+extern char pass[64];
+extern bool has_wifi;
 extern EventGroupHandle_t sta_wifi_event_group;
 
 // Function declarations
@@ -73,8 +75,6 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
 
 void wifi_init_sta(void)
 {
-    sta_wifi_event_group = xEventGroupCreate();
-
     ESP_ERROR_CHECK(esp_netif_init());
 
     esp_netif_create_default_wifi_sta();
@@ -107,8 +107,6 @@ void wifi_init_sta(void)
 
     wifi_config_t wifi_config = {
         .sta = {
-            .ssid               = "",
-            .password           = "",
             .threshold.authmode = WIFI_AUTH_WPA2_PSK,
             .sae_pwe_h2e        = WPA3_SAE_PWE_HUNT_AND_PECK,
             .sae_h2e_identifier = "",
@@ -137,14 +135,17 @@ void wifi_init_sta(void)
         ESP_LOGI(TAG, "connected to ap SSID:%s password:%s", ssid, pass);
         char content[100];
         sniprintf(content, sizeof(content), "ssid=%s&pass=%s", ssid, pass);
+        spiffs_erase_content(WIFI_FILE);
         spiffs_append_file(WIFI_FILE, content);
-        has_wifi = 1;
+        has_wifi = true;
+        in_ap_mode = false;
     }
     else if (bits & WIFI_FAIL_BIT)
     {
         ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s",ssid, pass);
         ESP_LOGI(TAG, "Initializing hotspot for wifi configuration...");
-        has_wifi = 0;
+        has_wifi = false;
+        in_ap_mode = true;
         init_hotspot();
     } 
     else
@@ -162,6 +163,7 @@ void check_last_succesful_connection(void)
     if (strlen(store_wifi_data) == 0) 
     {
         ESP_LOGI(TAG, "No last successful connection data found... Initializing hotspot for wifi configuration.");
+        in_ap_mode = true;
         init_hotspot();
         return;
     }
@@ -169,11 +171,12 @@ void check_last_succesful_connection(void)
     char stored_ssid[32] = {0};
     char stored_pass[64] = {0};
 
-    sscanf(store_wifi_data, "ssid=%31[^&]&password=%63s", stored_ssid, stored_pass);
+    sscanf(store_wifi_data, "ssid=%31[^&]&pass=%63s", stored_ssid, stored_pass);
 
-    if (strcmp(stored_ssid, "") == 0 || strcmp(stored_pass, "") == 0) 
+    if (strcmp(stored_ssid, "") == 0 || strcmp(stored_pass, "") == 0)
     {
         ESP_LOGI(TAG, "No last successful connection data found... Initializing hotspot for wifi configuration.");
+        in_ap_mode = true;
         init_hotspot();
         return;
     }
@@ -186,6 +189,19 @@ void check_last_succesful_connection(void)
 
 void init_wifi_sta(void)
 {
+    check_last_succesful_connection();
+
+    if (in_ap_mode)
+    {
+        xEventGroupWaitBits(
+            sta_wifi_event_group,
+            RECEIVED_HOTSPOT_DATA,
+            pdFALSE,
+            pdFALSE,
+            portMAX_DELAY
+        );
+    }
+
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) 
     {
@@ -194,8 +210,7 @@ void init_wifi_sta(void)
     }
     ESP_ERROR_CHECK(err);
 
-    check_last_succesful_connection();
-
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
+
     wifi_init_sta();
 }
