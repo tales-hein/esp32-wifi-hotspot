@@ -22,10 +22,18 @@
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT      BIT1
 
-// Component variables
+// Local variables
 
 static const char *TAG = "WIFI STATION";
 static int retry_count = 0;
+static const char* WIFI_FILE  = "/spiffs/wifi.txt";
+
+// Global variables
+
+extern char* ssid;
+extern char* pass;
+extern unsigned char has_wifi;
+extern EventGroupHandle_t sta_wifi_event_group;
 
 // Function declarations
 
@@ -130,13 +138,14 @@ void wifi_init_sta(void)
         char content[100];
         sniprintf(content, sizeof(content), "ssid=%s&pass=%s", ssid, pass);
         spiffs_append_file(WIFI_FILE, content);
+        has_wifi = 1;
     }
     else if (bits & WIFI_FAIL_BIT)
     {
         ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s",ssid, pass);
         ESP_LOGI(TAG, "Initializing hotspot for wifi configuration...");
+        has_wifi = 0;
         init_hotspot();
-        return;
     } 
     else
     {
