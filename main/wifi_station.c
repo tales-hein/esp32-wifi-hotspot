@@ -12,10 +12,6 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 
-// Internal inclusions
-
-#include "common.h"
-
 // Definitions
 
 #define MAX_CONN_RETRIES      10
@@ -29,7 +25,7 @@
 static const char *TAG        = "WIFI STATION";
 static int retry_count        = 0;
 static const char* WIFI_FILE  = "/spiffs/wifi.txt";
-static bool in_ap_mode               = false;
+static bool in_ap_mode        = false;
 
 // Global variables
 
