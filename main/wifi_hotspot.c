@@ -100,7 +100,7 @@ esp_err_t webserver_handler(httpd_req_t *req) {
     return ESP_FAIL;
 }
 
-void start_webserver(void) 
+static void start_webserver(void) 
 {
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();

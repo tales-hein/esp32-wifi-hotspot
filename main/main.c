@@ -1,6 +1,9 @@
 // External inclusions
 #include "esp_system.h"
 #include "esp_event.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_log.h"
 
 // Global variables
 
@@ -24,4 +27,10 @@ void app_main(void)
     init_storage();
     init_wifi_sta();
     init_mqtt();
+
+    while (1)
+    {
+        ESP_LOGI("MAIN", "loop");
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }

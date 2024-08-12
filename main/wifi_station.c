@@ -22,13 +22,14 @@
 #define WIFI_CONNECTED_BIT    BIT0
 #define WIFI_FAIL_BIT         BIT1
 #define RECEIVED_HOTSPOT_DATA BIT2
+#define WIFI_PROVISIONED      BIT3
 
 // Local variables
 
-static const char *TAG = "WIFI STATION";
-static int retry_count = 0;
+static const char *TAG        = "WIFI STATION";
+static int retry_count        = 0;
 static const char* WIFI_FILE  = "/spiffs/wifi.txt";
-bool in_ap_mode = false;
+static bool in_ap_mode               = false;
 
 // Global variables
 
@@ -36,6 +37,7 @@ extern char ssid[32];
 extern char pass[64];
 extern bool has_wifi;
 extern EventGroupHandle_t sta_wifi_event_group;
+extern EventGroupHandle_t mqtt_event_group;
 
 // Function declarations
 
@@ -73,7 +75,7 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
     }
 }
 
-void wifi_init_sta(void)
+static void wifi_init_sta(void)
 {
     ESP_ERROR_CHECK(esp_netif_init());
 
@@ -139,6 +141,7 @@ void wifi_init_sta(void)
         spiffs_append_file(WIFI_FILE, content);
         has_wifi = true;
         in_ap_mode = false;
+        xEventGroupSetBits(mqtt_event_group, WIFI_PROVISIONED);
     }
     else if (bits & WIFI_FAIL_BIT)
     {
@@ -154,7 +157,7 @@ void wifi_init_sta(void)
     }
 }
 
-void check_last_succesful_connection(void)
+static void check_last_succesful_connection(void)
 {
     char* store_wifi_data = spiffs_read_file(WIFI_FILE);
 
