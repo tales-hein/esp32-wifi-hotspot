@@ -27,10 +27,9 @@ void app_main(void)
     init_storage();
     init_wifi_sta();
     init_mqtt();
-
     while (1)
     {
         ESP_LOGI("MAIN", "loop");
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(10000));
     }
 }
