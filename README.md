@@ -42,4 +42,4 @@ idf.py flash monitor
 
 ## Contributing
 
-Feel free to ask for improvements, help, offering critiques, or even creating pull requests. :)
+Feel free to ask for improvements, help, offer critiques, or even creating pull requests. :)
