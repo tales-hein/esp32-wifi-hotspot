@@ -155,9 +155,9 @@ static void wifi_init_sta(void)
 
 static void check_last_succesful_connection(void)
 {
-    char* store_wifi_data = spiffs_read_file(WIFI_FILE);
+    char* stored_wifi_data = spiffs_read_file(WIFI_FILE);
 
-    if (store_wifi_data == NULL || strlen(store_wifi_data) == 0) 
+    if (stored_wifi_data == NULL || strlen(stored_wifi_data) == 0) 
     {
         ESP_LOGI(TAG, "No last successful connection data found... Initializing hotspot for wifi configuration.");
         in_ap_mode = true;
@@ -168,7 +168,7 @@ static void check_last_succesful_connection(void)
     char stored_ssid[32] = {0};
     char stored_pass[64] = {0};
 
-    sscanf(store_wifi_data, "ssid=%31[^&]&pass=%63s", stored_ssid, stored_pass);
+    sscanf(stored_wifi_data, "ssid=%31[^&]&pass=%63s", stored_ssid, stored_pass);
 
     if (strcmp(stored_ssid, "") == 0 || strcmp(stored_pass, "") == 0)
     {
