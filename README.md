@@ -38,7 +38,7 @@ idf.py flash monitor
 - When you first startup the target with this project flashed to it, you can then access it via wifi. After connection, enter 192.168.4.1 in your browser of choice.
 - With this you will be presented with a simple page that lets you inform the name of the network (ssid) and password which the esp will use to connect.
 - After a short moment the wifi should be provisioned, and you can test it by listening with your own machine to a locally hosted mqtt broker (i used mosquitto) in the "sources/" topic. Note that, if the connection is successful, the ssid and password will be stored in the esp, so if you lost the message sent to the topic cited above, you can do a quick restart so that the esp boots back up again, reconnects and then publishes to "sources/". The payload that the esp sends to this topic is its mac address, with it you can achieve the next usage case. 
-- Another test you can do is publish to the esp. To do so you can send a publish to you local broker to "response/<the mac of the esp>/". The esp should print the payload you sent to serial output.
+- Another test you can do is publish to the esp. To do so you can send a message to your local broker to this topic: "response/the mac of the esp/". The esp should print the payload you sent to serial output.
 
 ## Contributing
 
