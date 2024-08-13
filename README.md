@@ -1,4 +1,4 @@
-# Brief
+## Description
 
 Simple wifi provisioning webserver and mqtt client implementation using esp-idf.
 
